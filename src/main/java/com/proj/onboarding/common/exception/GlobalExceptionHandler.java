@@ -2,20 +2,22 @@ package com.proj.onboarding.common.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+@ControllerAdvice
 public class GlobalExceptionHandler {
 
 	@ExceptionHandler(DuplicateUsernameException.class)
 	public ResponseEntity<String> handleDuplicateUsernameException(DuplicateUsernameException e) {
 
-		return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
 	}
 
 	@ExceptionHandler(InvalidCredentialsException.class)
 	public ResponseEntity<String> handleInvalidCredentialsException(InvalidCredentialsException e) {
 
-		return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
 	}
 
 	@ExceptionHandler(RoleNotFoundException.class)
