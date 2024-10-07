@@ -6,14 +6,13 @@ import java.util.stream.Collectors;
 
 import com.proj.onboarding.domain.auth.dto.SignupResponseDto;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -40,9 +39,8 @@ public class User {
 	@Column(nullable = false)
 	private String password;
 
-	@ManyToMany
-	@JoinTable(name = "user_role_mapping", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
-	private final Set<UserRole> roles = new HashSet<>();
+	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+	private final Set<UserRoleMapping> roleMappings = new HashSet<>();
 
 	@Builder
 	public User(String username, String nickname, String password) {
@@ -52,13 +50,16 @@ public class User {
 	}
 
 	public void addRole(UserRole role) {
-		this.roles.add(role);
-		role.getUsers().add(this);
+		UserRoleMapping mapping = UserRoleMapping.builder().user(this).role(role).build();
+		this.roleMappings.add(mapping);
 	}
 
 	public void removeRole(UserRole role) {
-		this.roles.remove(role);
-		role.getUsers().remove(this);
+		this.roleMappings.removeIf(mapping -> mapping.getRole().equals(role));
+	}
+
+	public Set<UserRole> getRoles() {
+		return this.roleMappings.stream().map(UserRoleMapping::getRole).collect(Collectors.toSet());
 	}
 
 	public SignupResponseDto toDto() {
@@ -66,10 +67,8 @@ public class User {
 		return SignupResponseDto.builder()
 			.username(username)
 			.nickname(nickname)
-			.authorities(this.getRoles()
-				.stream()
-				.map(role -> new SignupResponseDto.AuthorityDto(role.getName()))
-				.collect(Collectors.toList()))
+			.authorities(
+				this.getRoles().stream().map(role -> new SignupResponseDto.AuthorityDto(role.getName())).toList())
 			.build();
 	}
 }

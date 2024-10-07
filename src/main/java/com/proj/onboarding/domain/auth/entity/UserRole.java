@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,8 +28,8 @@ public class UserRole {
 	@Column(nullable = false, unique = true)
 	private String name;
 
-	@ManyToMany(mappedBy = "roles")
-	private final Set<User> users = new HashSet<>();
+	@OneToMany(mappedBy = "role")
+	private final Set<UserRoleMapping> userMappings = new HashSet<>();
 
 	public UserRole(String name) {
 		this.name = name;
