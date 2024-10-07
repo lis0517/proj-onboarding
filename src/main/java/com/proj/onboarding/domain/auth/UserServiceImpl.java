@@ -14,6 +14,7 @@ import com.proj.onboarding.domain.auth.dto.SignupResponseDto;
 import com.proj.onboarding.domain.auth.entity.User;
 import com.proj.onboarding.domain.auth.entity.UserRole;
 import com.proj.onboarding.domain.auth.entity.UserRoleType;
+import com.proj.onboarding.security.JwtService;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class UserServiceImpl implements UserService {
 	private final UserRepository userRepository;
 	private final UserRoleRepository userRoleRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final JwtService jwtService;
 
 	@Override
 	@Transactional
@@ -45,6 +47,7 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
+	@Transactional
 	public SignResponseDto sign(SignRequestDto requestDto) {
 		log.info("Attempting to sign user : {}", requestDto.getUsername());
 
@@ -52,9 +55,21 @@ public class UserServiceImpl implements UserService {
 
 		validatePassword(requestDto.getPassword(), user.getPassword());
 
-		// TODO : access token, refresh token generate
+		String accessToken = jwtService.generateAccessToken(user.getUsername(), user.getRoles().stream().map(UserRole::getName).toList());
+		String refreshToken = jwtService.generateRefreshToken(user.getUsername());
 
-		return SignResponseDto.builder().token("temp-token").build();
+		user.updateRefreshToken(refreshToken);
+
+		jwtService.setRefreshTokenAtCookie(refreshToken);
+		jwtService.setAccessTokenAtHeader(accessToken);
+
+		log.info("User Successfully to sign : username : {} / token : {}", requestDto.getUsername(), accessToken);
+		return SignResponseDto.builder().token(accessToken).build();
+	}
+
+	@Override
+	public User findUserByUsername(String username) {
+		return getUserByUsername(username);
 	}
 
 	private void existsUsername(String username) {
@@ -71,8 +86,8 @@ public class UserServiceImpl implements UserService {
 		});
 	}
 
-	private void validatePassword(String rawPassword, String encodedPassword){
-		if(passwordEncoder.matches(rawPassword, encodedPassword)){
+	private void validatePassword(String rawPassword, String encodedPassword) {
+		if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
 			log.warn("Sign attempt with incorrect password.");
 			throw new InvalidCredentialsException("Invalid username or password.");
 		}
