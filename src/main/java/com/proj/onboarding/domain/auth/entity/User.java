@@ -39,6 +39,9 @@ public class User {
 	@Column(nullable = false)
 	private String password;
 
+	@Column
+	private String refreshToken;
+
 	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
 	private final Set<UserRoleMapping> roleMappings = new HashSet<>();
 
@@ -60,6 +63,10 @@ public class User {
 
 	public Set<UserRole> getRoles() {
 		return this.roleMappings.stream().map(UserRoleMapping::getRole).collect(Collectors.toSet());
+	}
+
+	public void updateRefreshToken(String refreshToken){
+		this.refreshToken = refreshToken;
 	}
 
 	public SignupResponseDto toDto() {
