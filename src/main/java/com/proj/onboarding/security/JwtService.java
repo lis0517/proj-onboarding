@@ -8,11 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.UnsupportedJwtException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,7 +21,6 @@ public class JwtService {
 	public static final String HEADER = "Authorization";
 	public static final String AUTHORIZATION_KEY = "auth";
 	public static final String REFRESH_TOKEN_COOKIE_NAME = "RefreshToken";
-	public static final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
 
 	@Value("${jwt.secret.key}")
 	private String secretKey;
@@ -38,13 +32,17 @@ public class JwtService {
 	private Long refreshTokenExpiration; // refresh token 만료 시간
 
 	public String generateAccessToken(String username, List<String> roles) {
+
 		return JwtProvider.generateAccessToken(AUTHORIZATION_KEY, roles, username, accessTokenExpiration,
-			JwtProvider.getSecretKey(secretKey), SIGNATURE_ALGORITHM);
+			getEncodedBase64SecretKey());
 	}
 
 	public String generateRefreshToken(String username) {
-		return JwtProvider.generateRefreshToken(username, refreshTokenExpiration, JwtProvider.getSecretKey(secretKey),
-			SIGNATURE_ALGORITHM);
+		return JwtProvider.generateRefreshToken(username, refreshTokenExpiration, getEncodedBase64SecretKey());
+	}
+
+	private String getEncodedBase64SecretKey() {
+		return JwtProvider.encodeBase64SecretKey(secretKey);
 	}
 
 	/**
@@ -86,19 +84,8 @@ public class JwtService {
 	}
 
 	public Boolean validateToken(String token) {
-		try {
-			Jwts.parserBuilder().setSigningKey(JwtProvider.getSecretKey(secretKey)).build().parseClaimsJws(token);
-			return true;
-		} catch (SecurityException | MalformedJwtException e) {
-			log.error("Invalid JWT signature.");
-		} catch (ExpiredJwtException e) {
-			log.error("Expired JWT token.");
-		} catch (UnsupportedJwtException e) {
-			log.error("Unsupported JWT token.");
-		} catch (IllegalArgumentException e) {
-			log.error("JWT claims is empty.");
-		}
-		return false;
+
+		return JwtProvider.validateToken(token, getEncodedBase64SecretKey());
 	}
 
 	/**
@@ -108,7 +95,7 @@ public class JwtService {
 	 * @return 추출된 이메일
 	 */
 	public String extractUsernameFromToken(String token) {
-		return JwtProvider.extractAllClaims(token, JwtProvider.getSecretKey(secretKey)).getSubject();
+		return JwtProvider.extractAllClaims(token, getEncodedBase64SecretKey()).getSubject();
 	}
 
 	/**
