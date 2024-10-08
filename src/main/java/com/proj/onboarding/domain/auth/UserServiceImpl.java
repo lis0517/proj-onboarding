@@ -55,7 +55,8 @@ public class UserServiceImpl implements UserService {
 
 		validatePassword(requestDto.getPassword(), user.getPassword());
 
-		String accessToken = jwtService.generateAccessToken(user.getUsername(), user.getRoles().stream().map(UserRole::getName).toList());
+		String accessToken = jwtService.generateAccessToken(user.getUsername(),
+			user.getRoles().stream().map(UserRole::getName).toList());
 		String refreshToken = jwtService.generateRefreshToken(user.getUsername());
 
 		user.updateRefreshToken(refreshToken);
